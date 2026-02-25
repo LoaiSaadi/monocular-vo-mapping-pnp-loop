@@ -701,11 +701,18 @@ def compose_status_view(cur_bgr: np.ndarray,
                         after_matches_img: Optional[np.ndarray],
                         text_lines: List[str],
                         max_width: int = 1280) -> np.ndarray:
-    # base keypoints image
-    vis_kp = cv2.drawKeypoints(
-        cur_bgr, keypoints, None,
-        flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS
-    )
+    
+    # base keypoints image - circles
+    # vis_kp = cv2.drawKeypoints(
+    #     cur_bgr, keypoints, None,
+    #     flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS
+    # )
+
+    # base keypoints image -  dots
+    vis_kp = cur_bgr.copy()
+    for k in keypoints:
+        x, y = int(k.pt[0]), int(k.pt[1])
+        cv2.circle(vis_kp, (x, y), 1, (0, 255, 0), -1)  # radius=1 dot
 
     # resize keypoints view if too wide
     h0, w0 = vis_kp.shape[:2]
