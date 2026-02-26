@@ -423,13 +423,13 @@ class PangolinViewer:
             gl.glEnd()
 
         # raw trajectory (red)
-        if len(raw) >= 2:
-            gl.glLineWidth(2.0)
-            gl.glColor3f(1.0, 0.0, 0.0)
-            gl.glBegin(gl.GL_LINE_STRIP)
-            for x, y, z in raw:
-                gl.glVertex3f(float(x), float(y), float(z))
-            gl.glEnd()
+        # if len(raw) >= 2:
+        #     gl.glLineWidth(2.0)
+        #     gl.glColor3f(1.0, 0.0, 0.0)
+        #     gl.glBegin(gl.GL_LINE_STRIP)
+        #     for x, y, z in raw:
+        #         gl.glVertex3f(float(x), float(y), float(z))
+        #     gl.glEnd()
 
         # corrected trajectory (green)
         if len(cor) >= 2:
@@ -824,7 +824,7 @@ def main(dataset_dir: str,
     os.makedirs(out_dir, exist_ok=True)
 
     out_ply = os.path.join(out_dir, "map_points.ply")
-    out_traj_raw = os.path.join(out_dir, "trajectory_raw.txt")
+    # out_traj_raw = os.path.join(out_dir, "trajectory_raw.txt")
     out_traj_corr = os.path.join(out_dir, "trajectory_corrected.txt")
     out_metrics = os.path.join(out_dir, "metrics.csv")
 
@@ -875,7 +875,7 @@ def main(dataset_dir: str,
 
     raw_positions: List[np.ndarray] = []
     corr_positions: List[np.ndarray] = []
-    raw_log: List[Tuple[float, float, float, float]] = []
+    # raw_log: List[Tuple[float, float, float, float]] = []
     corr_log: List[Tuple[float, float, float, float]] = []
 
     # viewer caches
@@ -1134,7 +1134,7 @@ def main(dataset_dir: str,
             raw_positions.append(c_raw)
             corr_positions.append(c_corr)
 
-            raw_log.append((frame.timestamp, float(c_raw[0]), float(c_raw[1]), float(c_raw[2])))
+            # raw_log.append((frame.timestamp, float(c_raw[0]), float(c_raw[1]), float(c_raw[2])))
             corr_log.append((frame.timestamp, float(c_corr[0]), float(c_corr[1]), float(c_corr[2])))
 
             # update pangolin in real-time
@@ -1202,11 +1202,11 @@ def main(dataset_dir: str,
         print(f"Saved map: {out_ply} | points={len(world_map.points)}")
 
     # trajectories
-    with open(out_traj_raw, "w", encoding="utf-8") as f:
-        for ts, x, y, z in raw_log:
-            y = -y
-            f.write(f"{ts:.6f} {x:.6f} {y:.6f} {z:.6f}\n")
-    print(f"Saved trajectory (raw): {out_traj_raw}")
+    # with open(out_traj_raw, "w", encoding="utf-8") as f:
+    #     for ts, x, y, z in raw_log:
+    #         y = -y
+    #         f.write(f"{ts:.6f} {x:.6f} {y:.6f} {z:.6f}\n")
+    # print(f"Saved trajectory (raw): {out_traj_raw}")
 
     with open(out_traj_corr, "w", encoding="utf-8") as f:
         for ts, x, y, z in corr_log:
