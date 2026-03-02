@@ -329,6 +329,122 @@ def refine_pose_gn_numeric(k: np.ndarray,
 # ============================================================
 # Pangolin viewer (PDF #8: MUST be real-time)
 # ============================================================
+# class PangolinViewer:
+#     def __init__(self, w: int = 1024, h: int = 768, title: str = "Trajectory + 3D Map (Pangolin)"):
+#         self.ok = False
+#         self.should_quit = False
+
+#         try:
+#             _win_add_vcpkg_dlls()
+#             import pangolin
+#             import OpenGL.GL as gl
+
+#             self.pangolin = pangolin
+#             self.gl = gl
+
+#             pangolin.CreateWindowAndBind(title, w, h)
+#             gl.glEnable(gl.GL_DEPTH_TEST)
+#             gl.glClearColor(0.10, 0.10, 0.12, 1.0)
+
+#             self.s_cam = pangolin.OpenGlRenderState(
+#                 pangolin.ProjectionMatrix(w, h, 520, 520, w / 2.0, h / 2.0, 0.05, 5000),
+#                 pangolin.ModelViewLookAt(0, -8, -8, 0, 0, 0, 0, -1, 0)
+#             )
+#             self.handler = pangolin.Handler3D(self.s_cam)
+
+#             self.d_cam = pangolin.CreateDisplay()
+#             aspect = -w / float(h)
+#             try:
+#                 self.d_cam.SetBounds(0.0, 1.0, 0.0, 1.0, aspect)
+#             except TypeError:
+#                 self.d_cam.SetBounds(
+#                     pangolin.Attach(0.0), pangolin.Attach(1.0),
+#                     pangolin.Attach(0.0), pangolin.Attach(1.0),
+#                     aspect
+#                 )
+#             self.d_cam.SetHandler(self.handler)
+
+#             self.ok = True
+#             print("[INFO] Pangolin viewer enabled.")
+
+#         except Exception as e:
+#             print(f"[ERROR] Pangolin init failed: {e!r}")
+#             self.ok = False
+
+#     def update(self,
+#                points_xyz: np.ndarray,
+#                traj_raw: np.ndarray,
+#                traj_corr: np.ndarray,
+#                flip_y_for_display: bool = True,
+#                max_points_draw: int = 20000) -> None:
+#         if not self.ok:
+#             return
+
+#         pangolin = self.pangolin
+#         gl = self.gl
+
+#         if pangolin.ShouldQuit():
+#             self.should_quit = True
+#             return
+
+#         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
+#         self.d_cam.Activate(self.s_cam)
+
+#         if hasattr(pangolin, "glDrawAxis"):
+#             pangolin.glDrawAxis(1.0)
+
+#         pts = np.asarray(points_xyz, dtype=np.float64) if points_xyz is not None else np.zeros((0, 3), np.float64)
+#         raw = np.asarray(traj_raw, dtype=np.float64) if traj_raw is not None else np.zeros((0, 3), np.float64)
+#         cor = np.asarray(traj_corr, dtype=np.float64) if traj_corr is not None else np.zeros((0, 3), np.float64)
+
+#         # Preferred axes: X right, Z forward, Y up -> OpenCV camera y is down, so flip Y for nicer view
+#         if flip_y_for_display:
+#             if len(pts):
+#                 pts = pts.copy()
+#                 pts[:, 1] *= -1.0
+#             if len(raw):
+#                 raw = raw.copy()
+#                 raw[:, 1] *= -1.0
+#             if len(cor):
+#                 cor = cor.copy()
+#                 cor[:, 1] *= -1.0
+
+#         if len(pts) > max_points_draw:
+#             idx = np.random.choice(len(pts), max_points_draw, replace=False)
+#             pts = pts[idx]
+
+#         # map points (gray)
+#         if len(pts) > 0:
+#             gl.glPointSize(2.0)
+#             gl.glColor3f(0.70, 0.70, 0.70)
+#             gl.glBegin(gl.GL_POINTS)
+#             for x, y, z in pts:
+#                 gl.glVertex3f(float(x), float(y), float(z))
+#             gl.glEnd()
+
+#         # raw trajectory (red)
+#         # if len(raw) >= 2:
+#         #     gl.glLineWidth(2.0)
+#         #     gl.glColor3f(1.0, 0.0, 0.0)
+#         #     gl.glBegin(gl.GL_LINE_STRIP)
+#         #     for x, y, z in raw:
+#         #         gl.glVertex3f(float(x), float(y), float(z))
+#         #     gl.glEnd()
+
+#         # corrected trajectory (green)
+#         if len(cor) >= 2:
+#             gl.glLineWidth(3.0)
+#             gl.glColor3f(0.0, 1.0, 0.0)
+#             gl.glBegin(gl.GL_LINE_STRIP)
+#             for x, y, z in cor:
+#                 gl.glVertex3f(float(x), float(y), float(z))
+#             gl.glEnd()
+
+#         pangolin.FinishFrame()
+
+
+
+
 class PangolinViewer:
     def __init__(self, w: int = 1024, h: int = 768, title: str = "Trajectory + 3D Map (Pangolin)"):
         self.ok = False
@@ -371,10 +487,81 @@ class PangolinViewer:
             print(f"[ERROR] Pangolin init failed: {e!r}")
             self.ok = False
 
+    def _draw_camera_frustum(self, t_world_cam: np.ndarray, scale: float = 0.6) -> None:
+        """
+        Draw a small camera frustum + local axes using pose T_world_cam (camera -> world).
+        """
+        gl = self.gl
+
+        if t_world_cam is None:
+            return
+
+        # OpenGL expects column-major, so send transpose
+        m = np.asarray(t_world_cam, dtype=np.float64).T.copy()
+
+        gl.glPushMatrix()
+        gl.glMultMatrixd(m)
+
+        # --- local camera axes (orientation) ---
+        axis_len = 0.35 * scale
+
+        gl.glLineWidth(2.0)
+        gl.glBegin(gl.GL_LINES)
+
+        # X axis (red)
+        gl.glColor3f(1.0, 0.0, 0.0)
+        gl.glVertex3f(0.0, 0.0, 0.0)
+        gl.glVertex3f(axis_len, 0.0, 0.0)
+
+        # Y axis (green)
+        gl.glColor3f(0.0, 1.0, 0.0)
+        gl.glVertex3f(0.0, 0.0, 0.0)
+        gl.glVertex3f(0.0, axis_len, 0.0)
+
+        # Z axis (blue)
+        gl.glColor3f(0.0, 0.4, 1.0)
+        gl.glVertex3f(0.0, 0.0, 0.0)
+        gl.glVertex3f(0.0, 0.0, axis_len)
+
+        gl.glEnd()
+
+        # --- camera frustum (yellow wireframe) ---
+        # local camera coordinates
+        z = 0.8 * scale
+        w = 0.5 * scale
+        h = 0.35 * scale
+
+        p0 = (0.0, 0.0, 0.0)     # camera center
+        p1 = ( w,  h, z)
+        p2 = ( w, -h, z)
+        p3 = (-w, -h, z)
+        p4 = (-w,  h, z)
+
+        gl.glColor3f(1.0, 1.0, 0.0)
+        gl.glLineWidth(2.0)
+
+        # lines from camera center to image plane corners
+        gl.glBegin(gl.GL_LINES)
+        for p in (p1, p2, p3, p4):
+            gl.glVertex3f(*p0)
+            gl.glVertex3f(*p)
+        gl.glEnd()
+
+        # rectangle of image plane
+        gl.glBegin(gl.GL_LINE_LOOP)
+        gl.glVertex3f(*p1)
+        gl.glVertex3f(*p2)
+        gl.glVertex3f(*p3)
+        gl.glVertex3f(*p4)
+        gl.glEnd()
+
+        gl.glPopMatrix()
+
     def update(self,
                points_xyz: np.ndarray,
                traj_raw: np.ndarray,
                traj_corr: np.ndarray,
+               current_pose_corr: Optional[np.ndarray] = None,
                flip_y_for_display: bool = True,
                max_points_draw: int = 20000) -> None:
         if not self.ok:
@@ -397,7 +584,7 @@ class PangolinViewer:
         raw = np.asarray(traj_raw, dtype=np.float64) if traj_raw is not None else np.zeros((0, 3), np.float64)
         cor = np.asarray(traj_corr, dtype=np.float64) if traj_corr is not None else np.zeros((0, 3), np.float64)
 
-        # Preferred axes: X right, Z forward, Y up -> OpenCV camera y is down, so flip Y for nicer view
+        # Apply same display convention to points/trajectory (Y-up visualization)
         if flip_y_for_display:
             if len(pts):
                 pts = pts.copy()
@@ -440,7 +627,23 @@ class PangolinViewer:
                 gl.glVertex3f(float(x), float(y), float(z))
             gl.glEnd()
 
+        # ---- Draw current camera pose / orientation (yellow frustum + RGB axes) ----
+        if current_pose_corr is not None:
+            t_draw = np.asarray(current_pose_corr, dtype=np.float64).copy()
+
+            # IMPORTANT: apply same Y-flip to the pose translation for display consistency
+            if flip_y_for_display:
+                t_draw[1, 3] *= -1.0
+                # If orientation looks mirrored/odd, use the stronger transform below instead:
+                # s = np.eye(4, dtype=np.float64)
+                # s[1, 1] = -1.0
+                # t_draw = s @ t_draw @ s
+
+            self._draw_camera_frustum(t_draw, scale=0.8)
+
         pangolin.FinishFrame()
+
+
 
 
 # ============================================================
@@ -1145,7 +1348,18 @@ def main(dataset_dir: str,
                     raw_cache = np.vstack(raw_positions) if len(raw_positions) else np.zeros((0, 3))
                     corr_cache = np.vstack(corr_positions) if len(corr_positions) else np.zeros((0, 3))
 
-                viewer.update(pts_cache, raw_cache, corr_cache, flip_y_for_display=True, max_points_draw=20000)
+                # viewer.update(pts_cache, raw_cache, corr_cache, flip_y_for_display=True, max_points_draw=20000)
+                
+                viewer.update(
+                    pts_cache,
+                    raw_cache,
+                    corr_cache,
+                    current_pose_corr=t_world_cam_corr.copy(),
+                    flip_y_for_display=True,
+                    max_points_draw=20000
+                )
+                
+                
                 if viewer.should_quit:
                     break
 
