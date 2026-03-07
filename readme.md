@@ -13,18 +13,19 @@ This project implements a basic **Monocular SLAM pipeline** including:
 
 ---
 
-# Project Structure
+## Project Structure
 
 
-main.py # Main SLAM pipeline
-pose.py # Pose class (camera pose representation)
-frame.py # Frame class (image + features + pose)
-point.py # 3D map point representation
-map.py # Map structure storing frames and points
-pangolin_viewer.py # Pangolin viewer for trajectory + map visualization
-pangolin.py # Pangolin wrapper script (REQUIRED)
-scripts/ # Old / helper scripts
-outputs/ # Generated outputs (trajectory, map, metrics)
+.
+├── main.py # Main SLAM pipeline
+├── pose.py # Pose class (camera pose representation)
+├── frame.py # Frame class (image + features + pose)
+├── point.py # 3D map point representation
+├── map.py # Map structure storing frames and points
+├── pangolin_viewer.py # Pangolin viewer for trajectory + map visualization
+├── pangolin.py # Pangolin wrapper script (REQUIRED)
+├── scripts/ # Old / helper scripts
+└── outputs/ # Generated outputs (trajectory, map, metrics)
 
 
 ---
