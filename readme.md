@@ -18,6 +18,7 @@ This project implements a basic **Monocular SLAM pipeline** including:
 
 .
 ├── main.py # Main SLAM pipeline
+
 ├── pose.py # Pose class (camera pose representation)
 ├── frame.py # Frame class (image + features + pose)
 ├── point.py # 3D map point representation
