@@ -27,7 +27,6 @@ This project implements a basic **Monocular SLAM pipeline** including:
 ├── scripts/ # Old / helper scripts
 └── outputs/ # Generated outputs (trajectory, map, metrics)
 
-
 ---
 
 # Important Note
